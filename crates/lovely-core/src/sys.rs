@@ -71,11 +71,11 @@ pub static lua_isstring: Lazy<Symbol<unsafe extern "C" fn(*mut LuaState, isize) 
 /// Load the provided buffer as a lua module with the specified name.
 /// # Safety
 /// Makes a lot of FFI calls, mutates internal C lua state.
-pub unsafe fn load_module<F: Fn(*mut LuaState, *const u8, isize, *const u8, *const u8) -> u32>(
+pub unsafe fn load_module<F: Fn(*mut LuaState, *const u8, isize, *const u8) -> u32>(
     state: *mut LuaState,
     name: &str,
     buffer: &str,
-    lual_loadbufferx: &F,
+    lual_loadbuffer: &F,
 ) {
     let buf_cstr = CString::new(buffer).unwrap();
     let buf_len = buf_cstr.as_bytes().len();
@@ -92,12 +92,11 @@ pub unsafe fn load_module<F: Fn(*mut LuaState, *const u8, isize, *const u8, *con
     let field_index = lua_gettop(state);
 
     // Load the buffer and execute it via lua_pcall, pushing the result to the top of the stack.
-    lual_loadbufferx(
+    lual_loadbuffer(
         state,
         buf_cstr.into_raw() as _,
         buf_len as _,
-        p_name_cstr.into_raw() as _,
-        ptr::null(),
+        p_name_cstr.into_raw() as _
     );
 
     let lua_pcall_return = lua_pcall(state, 0, -1, 0);

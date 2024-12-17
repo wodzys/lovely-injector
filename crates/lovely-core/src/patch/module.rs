@@ -23,18 +23,18 @@ pub struct ModulePatch {
 }
 
 impl ModulePatch {
-    /// Apply a module patch by loading the input file(s) into memory, calling lual_loadbufferx
+    /// Apply a module patch by loading the input file(s) into memory, calling lual_loadbuffer
     /// on them, and then injecting them into the global `package.preload` table.
     ///
     /// # Safety
     /// This function is unsafe as it interfaces directly with a series of dynamically loaded
     /// native lua functions.
-    pub unsafe fn apply<F: Fn(*mut LuaState, *const u8, isize, *const u8, *const u8) -> u32>(
+    pub unsafe fn apply<F: Fn(*mut LuaState, *const u8, isize, *const u8) -> u32>(
         &self,
         file_name: &str,
         state: *mut LuaState,
         path: &Path,
-        lual_loadbufferx: &F,
+        lual_loadbuffer: &F,
     ) -> bool {
         // Stop if we're not at the correct insertion point.
         if self.before != file_name {
@@ -65,12 +65,11 @@ impl ModulePatch {
         let field_index = sys::lua_gettop(state);
 
         // Load the buffer and execute it via lua_pcall, pushing the result to the top of the stack.
-        let return_code = lual_loadbufferx(
+        let return_code = lual_loadbuffer(
             state,
             buf_cstr.into_raw() as _,
             buf_len as _,
-            name_cstr.into_raw() as _,
-            ptr::null(),
+            name_cstr.into_raw() as _
         );
 
         if return_code != 0 {
